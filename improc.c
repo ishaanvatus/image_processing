@@ -1,5 +1,10 @@
 #include "improc.h"
 
+void fill(uint32_t *image,  int color)
+{
+    for (int i = 0; i < HEIGHT*WIDTH; i++)
+        image[i] = 16711935;
+}
 int save(uint32_t *image, char *filename)
 {
     FILE *output = fopen(filename, "wb");
@@ -10,9 +15,9 @@ int save(uint32_t *image, char *filename)
         for (int col = 0; col < WIDTH; col++) {
             uint8_t pixel[3] = 
             {
-                (image[row*WIDTH + col] >> (8*2))&0xff,
-                (image[row*WIDTH + col] >> (8*1))&0xff,
-                (image[row*WIDTH + col] >> (8*0))&0xff
+                image[row*WIDTH + col] >> (8*1),
+                image[row*WIDTH + col] >> (8*0),
+                image[row*WIDTH + col] >> (8*2)
             };
             fwrite(pixel, sizeof(pixel), 1, output);
         }
@@ -30,7 +35,7 @@ uint32_t *load(char *filename)
         for (int col = 0; col < WIDTH; col++) {
             uint8_t pixel[3];
             fread(pixel, sizeof(pixel), 1, input);
-            img[row*WIDTH + col] = (pixel[2]&0xff) + (pixel[1]<<8&0xff) + (pixel[0]<<16&0xff);
+            img[row*WIDTH + col] = (pixel[0] << 16) | (pixel[1] << 8) | (pixel[2] << 0);
         }
     }
     return img;

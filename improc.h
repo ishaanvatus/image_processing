@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "improc.h"
+void fill(uint32_t *image,  int color);
 int save(uint32_t *image, char *filename);
 uint32_t *load(char *filename);
 #endif

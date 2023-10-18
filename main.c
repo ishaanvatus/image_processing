@@ -7,8 +7,8 @@
 int main()
 {
     uint32_t *sample = malloc(WIDTH*HEIGHT*sizeof(uint32_t));
-    char *filename = "output.ppm";
+    char *filename = "input.ppm";
     sample = load(filename);
-    save(sample, "killme.ppm");
+    save(sample, "output.ppm");
     return 0;
 }
