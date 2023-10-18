@@ -8,4 +8,5 @@
 #include <stdlib.h>
 #include "improc.h"
 int save(uint32_t *image, char *filename);
+uint32_t *load(char *filename);
 #endif

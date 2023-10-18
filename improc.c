@@ -2,19 +2,36 @@
 
 int save(uint32_t *image, char *filename)
 {
-    FILE *fp = fopen(filename, "wb");
-    if (fp == NULL)
+    FILE *output = fopen(filename, "wb");
+    if (output == NULL)
         return -1;
-    fprintf(fp, "P6\n%d %d\n255\n", WIDTH, HEIGHT);
+    fprintf(output, "P6\n%d %d\n255\n", WIDTH, HEIGHT);
     for (int row = 0; row < HEIGHT; row++) {
         for (int col = 0; col < WIDTH; col++) {
             uint8_t pixel[3] = 
             {
-                0, 0, 0
+                (image[row*WIDTH + col] >> (8*2))&0xff,
+                (image[row*WIDTH + col] >> (8*1))&0xff,
+                (image[row*WIDTH + col] >> (8*0))&0xff
             };
-            fwrite(pixel, sizeof(pixel), 1, fp);
+            fwrite(pixel, sizeof(pixel), 1, output);
         }
     }
-    fclose(fp);
+    fclose(output);
     return 0;
+}
+uint32_t *load(char *filename)
+{
+    FILE *input = fopen(filename, "rb");
+    uint32_t *img = malloc(WIDTH*HEIGHT*sizeof(uint32_t));
+    char buffer[16];
+    fread(buffer, sizeof(buffer), 1, input);    
+    for (int row = 0; row < HEIGHT; row++) {
+        for (int col = 0; col < WIDTH; col++) {
+            uint8_t pixel[3];
+            fread(pixel, sizeof(pixel), 1, input);
+            img[row*WIDTH + col] = (pixel[2]&0xff) + (pixel[1]<<8&0xff) + (pixel[0]<<16&0xff);
+        }
+    }
+    return img;
 }
