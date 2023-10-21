@@ -3,10 +3,12 @@
 #include <stdint.h>
 #include <math.h>
 #include "improc.h"
-
 int main()
 {
-    uint32_t *sample = malloc(WIDTH*HEIGHT*sizeof(uint32_t));
+    struct Image *sample = malloc(sizeof(struct Image));
+    sample->height = 1080;
+    sample->width = 1920;
+    sample->pixels = malloc(sample->height*sample->width*sizeof(uint32_t));
     char *filename = "input.ppm";
     sample = load(filename);
     save(sample, "output.ppm");

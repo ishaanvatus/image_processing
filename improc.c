@@ -1,23 +1,23 @@
 #include "improc.h"
 
-void fill(uint32_t *image,  int color)
+void fill(struct Image *image,  int color)
 {
-    for (int i = 0; i < HEIGHT*WIDTH; i++)
-        image[i] = 16711935;
+    for (int i = 0; i < image->height*image->width; i++)
+        image->pixels[i] = color;
 }
-int save(uint32_t *image, char *filename)
+int save(struct Image *image, char *filename)
 {
     FILE *output = fopen(filename, "wb");
     if (output == NULL)
         return -1;
-    fprintf(output, "P6\n%d %d\n255\n", WIDTH, HEIGHT);
-    for (int row = 0; row < HEIGHT; row++) {
-        for (int col = 0; col < WIDTH; col++) {
+    fprintf(output, "P6\n%d %d\n255\n", image->width, image->height);
+    for (int row = 0; row < image->height; row++) {
+        for (int col = 0; col < image->width; col++) {
             uint8_t pixel[3] = 
             {
-                (image[row*WIDTH + col] >> (8*3))&0xFF,
-                (image[row*WIDTH + col] >> (8*2))&0xFF,
-                (image[row*WIDTH + col] >> (8*1))&0xFF,
+                (image->pixels[row*image->width + col] >> (8*3))&0xFF,
+                (image->pixels[row*image->width + col] >> (8*2))&0xFF,
+                (image->pixels[row*image->width + col] >> (8*1))&0xFF,
             };
             fwrite(pixel, sizeof(pixel), 1, output);
         }
@@ -25,20 +25,24 @@ int save(uint32_t *image, char *filename)
     fclose(output);
     return 0;
 }
-uint32_t *load(char *filename)
+struct Image *load(char *filename)
 {
     FILE *input = fopen(filename, "rb");
-    uint32_t *img = malloc(WIDTH*HEIGHT*sizeof(uint32_t));
-    char buffer[16];
-    fread(buffer, sizeof(buffer), 1, input);    
-    for (int row = 0; row < HEIGHT; row++) {
-        for (int col = 0; col < WIDTH; col++) {
+    struct Image *image = malloc(sizeof(struct Image));
+    char p;
+    int type, height, width, max_val;
+    fscanf(input, "%c%d\n%d %d\n%d\n", &p, &type, &width, &height, &max_val);
+    image->height = height;
+    image->width = width;
+    image->pixels = malloc(height*width*sizeof(uint32_t));
+    for (int row = 0; row < image->height; row++) {
+        for (int col = 0; col < image->width; col++) {
             uint8_t pixel[3];
             fread(pixel, sizeof(pixel), 1, input);
-            img[row*WIDTH + col] += (pixel[0] << (8*1)) | (pixel[1] << (8*3)) | (pixel[2] << (8*2));
+            image->pixels[row*image->width + col] = (pixel[0] << (8*3)) | (pixel[1] << (8*2)) | (pixel[2] << (8*1));
         }
     }
-    return img;
+    return image;
 }
 
 
