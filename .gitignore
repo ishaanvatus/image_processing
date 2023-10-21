@@ -1,1 +1,5 @@
 cips2ed.pdf
+*.png 
+*.ppm
+*.gif
+*.webp

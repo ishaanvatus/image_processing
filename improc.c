@@ -15,9 +15,9 @@ int save(uint32_t *image, char *filename)
         for (int col = 0; col < WIDTH; col++) {
             uint8_t pixel[3] = 
             {
-                image[row*WIDTH + col] >> (8*1),
-                image[row*WIDTH + col] >> (8*0),
-                image[row*WIDTH + col] >> (8*2)
+                (image[row*WIDTH + col] >> (8*3))&0xFF,
+                (image[row*WIDTH + col] >> (8*2))&0xFF,
+                (image[row*WIDTH + col] >> (8*1))&0xFF,
             };
             fwrite(pixel, sizeof(pixel), 1, output);
         }
@@ -35,8 +35,21 @@ uint32_t *load(char *filename)
         for (int col = 0; col < WIDTH; col++) {
             uint8_t pixel[3];
             fread(pixel, sizeof(pixel), 1, input);
-            img[row*WIDTH + col] = (pixel[0] << 16) | (pixel[1] << 8) | (pixel[2] << 0);
+            img[row*WIDTH + col] += (pixel[0] << (8*1)) | (pixel[1] << (8*3)) | (pixel[2] << (8*2));
         }
     }
     return img;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
