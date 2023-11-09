@@ -1,3 +1,3 @@
 #!/bin/bash
 
-gcc -Wall -Wextra -ggdb improc.c main.c -O3 -o main -lm -mcmodel=medium
+gcc improc.c main.c -O3 -g -Wall -Wpedantic -Wextra -o main

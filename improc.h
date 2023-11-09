@@ -1,18 +1,11 @@
-#ifndef _scrimage_h
-#define _scrimage_h
-
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include "improc.h"
+#ifndef IMPROC_H
+#define IMPROC_H
 struct Image
 {
-    uint32_t *pixels;
-    int width;
     int height;
+    int width;
+    int *pixels;
 };
-
-void fill(struct Image *image,  int color);
-int save(struct Image *image, char *filename);
 struct Image *load(char *filename);
+int save(char *filename, struct Image img);
 #endif
