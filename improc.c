@@ -13,7 +13,7 @@ struct Image *load(char *filename)
     }
     char magic[3];
     int maxval;
-    FILE *fp = fopen(filename, "r");
+    FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         fprintf(stderr, "Error opening file: %s\n", strerror(errno));
         free(img);
@@ -34,27 +34,17 @@ struct Image *load(char *filename)
         return NULL;
     }
     fscanf(fp, "%d%*c", &maxval);
-    fread(img->pixels, sizeof(int),img->width*img->height, fp);
+    fread(img->pixels, sizeof(uint8_t),3*img->width*img->height, fp);
     return img;
 }
 int save(char *filename, struct Image img)
 {
-    FILE *fp = fopen(filename, "w");
+    FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {
         fprintf(stderr, "Error opening file: %s\n", strerror(errno));
         return -1;
     }
     fprintf(fp, "P6\n%d %d\n255\n", img.width, img.height);
-    for (int row = 0; row < img.height; row++) {
-        for (int col = 0; col < img.width; col++) {
-            uint8_t pixel[] = 
-            {
-                img.pixels[row*img.width + col]>>(8*0) & 0xFF, 
-                img.pixels[row*img.width + col]>>(8*1) & 0xFF, 
-                img.pixels[row*img.width + col]>>(8*2) & 0xFF
-            };
-            fwrite(pixel, sizeof(uint8_t), 3, fp);
-        }
-    }
+    fwrite(img.pixels, sizeof(uint8_t), 3*img.width*img.height, fp);
     return 0;
 }
