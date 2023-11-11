@@ -1,11 +1,14 @@
-#ifndef IMPROC_H
-#define IMPROC_H
+#ifndef IMAGE_H
+#define IMAGE_H
+#include <stdint.h>
 struct Image
 {
     int height;
     int width;
-    int *pixels;
+    uint8_t *pixels;
 };
 struct Image *load(char *filename);
 int save(char *filename, struct Image img);
+void grayscale(struct Image *img);
+void perceptual_grayscale(struct Image *img);
 #endif
