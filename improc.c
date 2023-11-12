@@ -48,8 +48,21 @@ int save(char *filename, struct Image img)
     fwrite(img.pixels, sizeof(uint8_t), 3*img.width*img.height, fp);
     return 0;
 }
-void grayscale(struct Image *img)
+struct Image *grayscale(struct Image *img)
 {
+    struct Image *gray = malloc(sizeof(struct Image));
+    if (gray == NULL) {
+        fprintf(stderr, "Could not allocate memory to Image: %s\n", strerror(errno));
+        return NULL;
+    }
+    gray->pixels = malloc(3*img->width*img->height*sizeof(uint8_t));
+    if (gray->pixels == NULL) {
+        free(gray);
+        fprintf(stderr, "Could not allocate memory to pixels: %s\n", strerror(errno));
+        return NULL;
+    }
+    gray->width = img->width;
+    gray->height = img->height;
 	uint8_t avg;
    	uint8_t r, g, b;
 	for (int row = 0; row < img->height*3; row += 3) {
@@ -58,25 +71,42 @@ void grayscale(struct Image *img)
 			g = img->pixels[row*img->width + col + 1];
 			b = img->pixels[row*img->width + col + 2];
 			avg = ((int) (r+g+b))/3;
-			img->pixels[row*img->width + col + 0] = avg;
-			img->pixels[row*img->width + col + 1] = avg;
-			img->pixels[row*img->width + col + 2] = avg;
+			gray->pixels[row*img->width + col + 0] = avg;
+			gray->pixels[row*img->width + col + 1] = avg;
+			gray->pixels[row*img->width + col + 2] = avg;
 		}
 	}
+    return gray;
 }
-void perceptual_grayscale(struct Image *img)
+struct Image *perceptual_grayscale(struct Image *img)
 {
-	uint8_t avg;
+    struct Image *gray = malloc(sizeof(struct Image));
+    if (gray == NULL) {
+        fprintf(stderr, "Could not allocate memory to Image: %s\n", strerror(errno));
+        return NULL;
+    }
+    gray->pixels = malloc(3*img->width*img->height*sizeof(uint8_t));
+    if (gray->pixels == NULL) {
+        free(gray);
+        fprintf(stderr, "Could not allocate memory to pixels: %s\n", strerror(errno));
+        return NULL;
+    }
+    gray->width = img->width;
+    gray->height = img->height;
+	uint8_t yuv_gray;
    	uint8_t r, g, b;
 	for (int row = 0; row < img->height*3; row += 3) {
 		for (int col = 0; col < img->width*3; col += 3) {
 			r = img->pixels[row*img->width + col + 0];
 			g = img->pixels[row*img->width + col + 1];
 			b = img->pixels[row*img->width + col + 2];
-            uint8_t gray_value = (uint8_t)(0.299 * r + 0.587 * g + 0.114 * b);
-			img->pixels[row*img->width + col + 0] = b;
-			img->pixels[row*img->width + col + 1] = r;
-			img->pixels[row*img->width + col + 2] = g;
+            printf("(%d, %d) ", row, col);
+            yuv_gray = (uint8_t)(0.299 * r + 0.587 * g + 0.114 * b);
+			gray->pixels[row*img->width + col + 0] = yuv_gray;
+			gray->pixels[row*img->width + col + 1] = yuv_gray;
+			gray->pixels[row*img->width + col + 2] = yuv_gray;
 		}
+        printf("\n");
 	}
+    return gray;
 }
