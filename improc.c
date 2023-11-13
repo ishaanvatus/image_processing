@@ -29,7 +29,7 @@ void free_image(Image *image)
         free(image);
     }
 }
-Image *load(char *filename)
+Image *load_image(char *filename)
 {
     char magic[3];
     int maxval, width, height;
@@ -48,9 +48,10 @@ Image *load(char *filename)
     Image *image = create_image(width, height);
     fscanf(fp, "%d%*c", &maxval);
     fread(image->pixels, sizeof(Pixel),image->width*image->height, fp);
+    fclose(fp);
     return image;
 }
-int save(char *filename, Image image)
+int save_image(char *filename, Image image)
 {
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {
@@ -59,6 +60,7 @@ int save(char *filename, Image image)
     }
     fprintf(fp, "P6\n%d %d\n255\n", image.width, image.height);
     fwrite(image.pixels, sizeof(Pixel), image.width*image.height, fp);
+    fclose(fp);
     return 0;
 }
 Image *grayscale(Image image)
@@ -81,14 +83,14 @@ Image *perceptual_grayscale(Image image)
 {
     Image *gray = create_image(image.width, image.height);
     Pixel pix;
-	uint8_t yuv_gray;
+	uint8_t bt_601;
     int index;
 	for (int row = 0; row < image.height; row++) {
 		for (int col = 0; col < image.width; col++) {
             index = row*image.width + col;
             pix = image.pixels[index];
-            yuv_gray = (uint8_t) (0.299*pix.r + 0.587*pix.g + 0.114*pix.b);
-			gray->pixels[index] = (Pixel) {yuv_gray, yuv_gray, yuv_gray};
+            bt_601 = (uint8_t) (0.2126*pix.r + 0.7152*pix.g + 0.0722*pix.b);
+			gray->pixels[index] = (Pixel) {bt_601, bt_601, bt_601};
 		}
 	}
     return gray;

@@ -5,11 +5,11 @@
 int main(int argc, char **argv)
 {
     (void) argc;
-    Image *ema = load(argv[1]), *perc, *gray;
-    save("identity.ppm", *ema);
+    Image *ema = load_image(argv[1]), *perc, *gray;
+    save_image("identity.ppm", *ema);
     gray = grayscale(*ema);
-    save("grayscale.ppm", *gray);
+    save_image("grayscale.ppm", *gray);
     free_image(gray);
     perc = perceptual_grayscale(*ema);
-    save("perceptual.ppm", *perc);
+    save_image("perceptual.ppm", *perc);
 }

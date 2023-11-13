@@ -1,4 +1,6 @@
 cips2ed.pdf
+test/
+test/*
 *.png 
 *.ppm
 *.gif
