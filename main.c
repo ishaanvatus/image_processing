@@ -8,6 +8,7 @@ int main(int argc, char **argv)
     save("identity.ppm", *ema);
     gray = grayscale(ema);
     save("grayscale.ppm", *gray);
+    free_image(gray);
     perc = perceptual_grayscale(ema);
     save("perceptual.ppm", *perc);
 }
