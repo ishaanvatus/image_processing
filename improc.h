@@ -1,15 +1,21 @@
-#ifndef IMAGE_H
-#define IMAGE_H
+#ifndef IMPROC_H
+#define IMPROC_H
 #include <stdint.h>
-struct Image
+typedef struct
 {
     int height;
     int width;
     uint8_t *pixels;
-};
-void free_image(struct Image *image);
-struct Image *load(char *filename);
-int save(char *filename, struct Image img);
-struct Image *grayscale(struct Image *img);
-struct Image *perceptual_grayscale(struct Image *img);
+} Image;
+typedef struct 
+{
+    double re;
+    double im;
+} Complex;
+void free_image(Image *image);
+Image *load(char *filename);
+int save(char *filename, Image image);
+Image *grayscale(Image image);
+Image *perceptual_grayscale(Image image);
+Image *gradient(Image image);
 #endif
