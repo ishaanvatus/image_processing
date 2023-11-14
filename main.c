@@ -5,11 +5,26 @@
 int main(int argc, char **argv)
 {
     (void) argc;
-    Image *ema = load_image(argv[1]), *perc, *gray;
+    /*
+     * create 5x5 box blur kernel
+     * 1.0 1.0 1.0 1.0 1.0
+     * 1.0 1.0 1.0 1.0 1.0
+     * 1.0 1.0 1.0 1.0 1.0
+     * 1.0 1.0 1.0 1.0 1.0
+     * 1.0 1.0 1.0 1.0 1.0
+     * 1.0 1.0 1.0 1.0 1.0
+    */
+    Kernel box_blur;
+    box_blur.size = 5;
+    box_blur.weights = malloc(box_blur.size*box_blur.size*sizeof(double));
+    for (int row = 0; row < box_blur.size; row++) {
+        for (int  col = 0; col < box_blur.size; col++)
+            box_blur.weights[row*box_blur.size + col] = 1.0;
+    }
+
+    Image *ema = load_image(argv[1]);
+    Image *blur;
     save_image("identity.ppm", *ema);
-    gray = grayscale(*ema);
-    save_image("grayscale.ppm", *gray);
-    free_image(gray);
-    perc = perceptual_grayscale(*ema);
-    save_image("perceptual.ppm", *perc);
+    blur = convolve(*ema, box_blur);
+    save_image("blur.ppm", *blur);
 }
