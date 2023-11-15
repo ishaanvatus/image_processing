@@ -220,17 +220,9 @@ Image *sobel(Image image)
                 sqrt(x.g*x.g + y.g*y.g),
                 sqrt(x.b*x.b + y.b*y.b),
             };
-            /*
             gradient.r = (gradient.r > 255)? 255: gradient.r;
             gradient.g = (gradient.g > 255)? 255: gradient.g;
             gradient.b = (gradient.b > 255)? 255: gradient.b;
-            printf("\n");
-            printf("x.r: %lf, y.r: %lf, gradient.r: %lf\n", x.r, y.r, gradient.r);
-            printf("x.g: %lf, y.g: %lf, gradient.g: %lf\n", x.g, y.g, gradient.g);
-            printf("x.b: %lf, y.b: %lf, gradient.b: %lf\n", x.b, y.b, gradient.b);
-            printf("\n");
-            sleep(1);
-            */
             conv->pixels[row*image.width + col].r = (uint8_t) gradient.r;
             conv->pixels[row*image.width + col].g = (uint8_t) gradient.g;
             conv->pixels[row*image.width + col].b = (uint8_t) gradient.b;
