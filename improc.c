@@ -2,241 +2,71 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include <math.h>
-#include <unistd.h>
 #include <errno.h>
 #include "improc.h"
-Image *create_image(int width, int height)
+struct Image *create_image(size_t width, size_t height, size_t channels)
 {
-    Image *image = malloc(sizeof(Image));
-    if (image == NULL) {
-        fprintf(stderr, "Could not allocate memory to Image: %s\n", strerror(errno));
-        return NULL;
-    }
+    struct Image *image;
+    image = malloc(sizeof(struct Image));
+    if (image == NULL)
+        fprintf(stderr, "Couldn't allocate memory for image:%s\n", strerror(errno));
     image->width = width;
     image->height = height;
-    image->pixels = malloc(width*height*sizeof(Pixel));
-    if (image->pixels == NULL) {
-        free(image);
-        fprintf(stderr, "Could not allocate memory to pixels: %s\n", strerror(errno));
-        return NULL;
+    image->channels = channels;
+    image->data = malloc(channels*sizeof(double *));
+    if (image->data == NULL)
+        fprintf(stderr, "Couldn't allocate memory for channels:%s\n", strerror(errno));
+    for (size_t i = 0; i < channels; i++) {
+        image->data[i] = malloc(width*height*sizeof(double));
+        if (image->data[i] == NULL)
+            fprintf(stderr, "Couldn't allocate memory to channel %zu:%s\n", i, strerror(errno));
     }
     return image;
 }
-void free_image(Image *image)
-{
-    if (image != NULL) {
-        if (image->pixels != NULL)
-            free(image->pixels);
-        free(image);
-    }
-}
-Image *load_image(char *filename)
-{
-    char magic[3];
-    int maxval, width, height;
-    FILE *fp = fopen(filename, "rb");
-    if (fp == NULL) {
-        fprintf(stderr, "Error opening file: %s\n", strerror(errno));
-        return NULL;
-    }
-    fscanf(fp, "%2s", magic);
-    if (magic[0] != 'P' || magic[1] != '6') {
-        fprintf(stderr, "Not a valid P6 ppm file: %s\n", strerror(errno));
-        fclose(fp);
-        return NULL;
-    }
-    fscanf(fp, "%d%d%*c", &width, &height);
-    Image *image = create_image(width, height);
-    fscanf(fp, "%d%*c", &maxval);
-    fread(image->pixels, sizeof(Pixel),image->width*image->height, fp);
-    fclose(fp);
-    return image;
-}
-int save_image(char *filename, Image image)
+int save_image(const char *filename, struct Image image)
 {
     FILE *fp = fopen(filename, "wb");
     if (fp == NULL) {
-        fprintf(stderr, "Error opening file: %s\n", strerror(errno));
+        fprintf(stderr, "Failed to open file:%s\n", strerror(errno));
         return -1;
     }
-    fprintf(fp, "P6\n%d %d\n255\n", image.width, image.height);
-    fwrite(image.pixels, sizeof(Pixel), image.width*image.height, fp);
-    fclose(fp);
+    uint8_t val;
+    fprintf(fp, "P6\n%zu %zu\n255\n", image.width, image.height);   
+    for (size_t row = 0; row < image.height; row++) {
+        for (size_t col = 0; col < image.width; col++) {
+            for (size_t channel = 0; channel < image.channels; channel++) {
+                val = (uint8_t) image.data[channel][row*image.width + col];
+                fwrite(&val, sizeof(uint8_t), 1, fp);
+            }
+        }
+    }
     return 0;
 }
-Image *grayscale(Image image)
+struct Image *load_image(const char *filename)
 {
-    Image *gray = create_image(image.width, image.height);
-    Pixel pix;
-    int index;
-	uint8_t avg;
-	for (int row = 0; row < image.height; row++) {
-		for (int col = 0; col < image.width; col++) {
-            index = row*image.width + col;
-			pix = image.pixels[index];
-			avg = (uint8_t) ((pix.r + pix.g + pix.b)/3.0);
-			gray->pixels[index] = (Pixel) {avg, avg, avg};
-		}
-	}
-    return gray;
-}
-Image *perceptual_grayscale(Image image)
-{
-    Image *gray = create_image(image.width, image.height);
-    Pixel pix;
-	uint8_t bt_601;
-    int index;
-	for (int row = 0; row < image.height; row++) {
-		for (int col = 0; col < image.width; col++) {
-            index = row*image.width + col;
-            pix = image.pixels[index];
-            bt_601 = (uint8_t) (0.2126*pix.r + 0.7152*pix.g + 0.0722*pix.b);
-			gray->pixels[index] = (Pixel) {bt_601, bt_601, bt_601};
-		}
-	}
-    return gray;
-}
-
-double kernel_min(Kernel kernel)
-{
-    double min = 0;
-    for (int index = 0; index < kernel.size*kernel.size; index++) {
-        if (kernel.weights[index] < 0)
-            min += kernel.weights[index];
+    char magic[3];
+    int height, width;
+    int maxval;
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL)
+        fprintf(stderr, "Failed to open file:%s\n", strerror(errno));
+    fscanf(fp, "%2s", magic);
+    if (magic[0] != 'P' || magic[1] != '6') {
+        fprintf(stderr, "Not a valid P6 ppm file:%s\n", strerror(errno));
+        fclose(fp);
+        return NULL;
     }
-    return min*255;
-}
-double kernel_max(Kernel kernel)
-{
-    double max = 0;
-    for (int index = 0; index < kernel.size*kernel.size; index++) {
-        if (kernel.weights[index] > 0)
-            max += kernel.weights[index];
-    }
-    return max*255;
-}
-Accumulator convolve(Image image, Kernel kernel, int row, int col)
-{
-    Accumulator accumulator = {0, 0, 0};
-    for (int r_off = -kernel.size/2; r_off <= kernel.size/2; r_off++) {
-        for (int c_off = -kernel.size/2; c_off <= kernel.size/2; c_off++) {
-            int ir = modulo(row + r_off, image.height);
-            int ic = modulo(col + c_off, image.width);
-            int kr = r_off + kernel.size/2;
-            int kc = c_off + kernel.size/2;
-            int index = ir*image.width + ic;
-            Pixel pixel = image.pixels[index];
-
-            accumulator.r += pixel.r*kernel.weights[kr*kernel.size + kc];
-            accumulator.g += pixel.g*kernel.weights[kr*kernel.size + kc];
-            accumulator.b += pixel.b*kernel.weights[kr*kernel.size + kc];
-        }
-    }
-    return accumulator;
-}
-Image *apply_kernel(Image image, Kernel kernel)
-{
-    Image *conv = create_image(image.width, image.height);
-    double max = kernel_max(kernel);
-    double min = kernel_min(kernel);
-    double alpha = max - min;
-    for (int row = 0; row < image.height; row++) {
-        for (int col = 0; col < image.width; col++) {
-            Accumulator accumulator = convolve(image, kernel, row, col);
-
-            accumulator.r = 255*(accumulator.r - min)/alpha;
-            accumulator.g = 255*(accumulator.g - min)/alpha;
-            accumulator.b = 255*(accumulator.b - min)/alpha;
-
-            conv->pixels[row*image.width + col].r = accumulator.r;
-            conv->pixels[row*image.width + col].g = accumulator.g;
-            conv->pixels[row*image.width + col].b = accumulator.b;
+    fscanf(fp, "%d %d\n", &width, &height);
+    fscanf(fp, "%d\n", &maxval);
+    uint8_t val;
+    struct Image *image = create_image(width, height, 3);
+    for (size_t row = 0; row < image->height; row++) {
+        for (size_t col = 0; col < image->width; col++) {
+            for (size_t channel = 0; channel < image->channels; channel++) {
+                fread(&val, sizeof(uint8_t), 1, fp);
+                image->data[channel][row*image->width + col] = (double) val;
             }
-        printf("%lf\r", 100.0*(1.0*row)/image.height);
-        fflush(stdout);
         }
-    return conv;
-}
-Kernel sobel_x(int n)
-{
-    Kernel sx;
-    sx.size = 3;
-    sx.weights = malloc(sizeof(double)*sx.size*sx.size);
-    sx.weights[0] = -1;
-    sx.weights[1] = -2;
-    sx.weights[2] = -1;
-    sx.weights[3] = 0;
-    sx.weights[4] = 0;
-    sx.weights[5] = 0;
-    sx.weights[6] = 1;
-    sx.weights[7] = 2;
-    sx.weights[8] = 1;
-    return sx;
-}
-Kernel sobel_y(int n)
-{
-    Kernel sy;
-    sy.size = 3;
-    sy.weights = malloc(sy.size*sy.size*sizeof(double));
-    sy.weights[0] = -1;
-    sy.weights[1] = 0;
-    sy.weights[2] = 1;
-    sy.weights[3] = -2;
-    sy.weights[4] = 0;
-    sy.weights[5] = 2;
-    sy.weights[6] = -1;
-    sy.weights[7] = 0;
-    sy.weights[8] = 1;
-    return sy;
-}
-Image *sobel(Image image)
-{
-    Image *conv = create_image(image.width, image.height);
-    Image *sobx, *soby;
-    Kernel sx = sobel_x(3);
-    Kernel sy = sobel_y(3);
-    sobx = apply_kernel(image, sx);
-    soby = apply_kernel(image, sy);
-    save_image("sobel_x.ppm", *sobx);
-    save_image("sobel_y.ppm", *soby);
-    double max = kernel_max(sx);
-    double min = kernel_min(sx);
-    double alpha = max - min;
-    for (int row = 0; row < image.height; row++) {
-        for (int col = 0; col < image.width; col++) {
-            Accumulator x = convolve(image, sx, row, col);
-            Accumulator y = convolve(image, sy, row, col);
-            x.r = 255*(x.r)/alpha;
-            x.g = 255*(x.g)/alpha;
-            x.b = 255*(x.b)/alpha;
-
-            y.r = 255*(y.r)/alpha;
-            y.g = 255*(y.g)/alpha;
-            y.b = 255*(y.b)/alpha;
-
-            Accumulator gradient = {
-                sqrt(x.r*x.r + y.r*y.r),
-                sqrt(x.g*x.g + y.g*y.g),
-                sqrt(x.b*x.b + y.b*y.b),
-            };
-            gradient.r = (gradient.r > 255)? 255: gradient.r;
-            gradient.g = (gradient.g > 255)? 255: gradient.g;
-            gradient.b = (gradient.b > 255)? 255: gradient.b;
-            conv->pixels[row*image.width + col].r = (uint8_t) gradient.r;
-            conv->pixels[row*image.width + col].g = (uint8_t) gradient.g;
-            conv->pixels[row*image.width + col].b = (uint8_t) gradient.b;
-            }
-        printf("%lf\r", 100.0*(1.0*row)/image.height);
-        fflush(stdout);
-        }
-    return conv;
-}
-
-unsigned modulo(int value, unsigned m)
-{
-	int mod = value % (int) m;
-	if (mod < 0)
-        mod += m;
-	return mod;
+    }
+    return image;
 }
