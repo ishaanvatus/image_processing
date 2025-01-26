@@ -1,20 +1,18 @@
-CC = gcc
-CFLAGS = -Wall -Wpedantic -Wextra
-OFLAGS = -O3
-DFLAGS = -g
+CC=gcc
+CFLAGS=-Wall -Wextra -Wwrite-strings -Wno-parentheses -Wpedantic -Warray-bounds -Wconversion  -Wstrict-prototypes -std=c17 -fPIC -g
 
-SRCS = improc.c main.c
-OBJS = $(SRCS:.c=.o)
+SRCS=improc.c main.c
+OBJS= $(SRCS:.c=.o)
 
-TARGET = main
+TARGET=main
 
 all: $(TARGET)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(OFLAGS) $(DFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS)  -c $< -o $@
 
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) $(OFLAGS) $(DFLAGS) $(OBJS) -o $(TARGET)
+	$(CC) $(CFLAGS)  $(OBJS) -o $(TARGET)
 
 clean:
 	rm -f $(OBJS) 

@@ -1,13 +1,15 @@
-#ifndef IMPROC_H
-#define IMPROC_H
-struct Image {
-    size_t height;
-    size_t width;
-    size_t channels;
-    double **data;
-};
+#ifndef IMPROC_H_
+#define IMPROC_H_
+#include <stdint.h>
 
-struct Image *create_image(size_t width, size_t height, size_t channels);
-int save_image(const char *filename, struct Image image);
-struct Image *load_image(const char *filename);
+typedef struct Image {
+    uint32_t height;
+    uint32_t width;
+    uint32_t depth;
+    uint32_t channels;
+    void *data;
+} Image;
+
+int save_image(Image *image, char *filename);
+
 #endif

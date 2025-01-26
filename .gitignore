@@ -1,4 +1,4 @@
-cips2ed.pdf
+*.pdf
 test/
 test/*
 *.png 
