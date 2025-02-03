@@ -1,6 +1,10 @@
 *.pdf
 test/
 test/*
+horrors/
+horrors/*
+images/
+images/*
 *.png 
 *.ppm
 *.gif

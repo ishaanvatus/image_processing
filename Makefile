@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-Wall -Wextra -Wwrite-strings -Wno-parentheses -Wpedantic -Warray-bounds -Wconversion  -Wstrict-prototypes -std=c17 -fPIC -g
+CFLAGS=-Wall -Wextra -Wwrite-strings -Wno-parentheses -Wpedantic -Warray-bounds -Wconversion  -Wstrict-prototypes -std=c17 -fPIC -g -lm 
 
 SRCS=improc.c main.c
 OBJS= $(SRCS:.c=.o)

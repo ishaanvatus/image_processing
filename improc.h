@@ -10,6 +10,7 @@ typedef struct Image {
     void *data;
 } Image;
 
+Image *image_malloc(int width, int height, int depth, int channels);
 int save_image(Image *image, char *filename);
-
+Image *open_image(char *filename);
 #endif
