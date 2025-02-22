@@ -1,16 +1,15 @@
-#ifndef IMPROC_H_
-#define IMPROC_H_
+#ifndef IMPROC_H
+#define IMPROC_H
 #include <stdint.h>
-
-typedef struct Image {
+typedef struct {
     uint32_t height;
     uint32_t width;
-    uint32_t depth;
+    double *pixels;
     uint32_t channels;
-    void *data;
+    uint32_t bit_depth;
 } Image;
-
-Image *image_malloc(int width, int height, int depth, int channels);
-int save_image(Image *image, char *filename);
+Image *malloc_image(uint32_t width, uint32_t height, uint32_t channels, uint32_t bit_depth);
+void free_image(Image *image);
 Image *open_image(char *filename);
-#endif
+int save_image(Image *image, char *filename);
+#endif 
