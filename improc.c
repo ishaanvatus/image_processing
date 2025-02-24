@@ -1,4 +1,4 @@
-#include <stdio.h>
+ #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -70,4 +70,65 @@ int save_image(Image *image, char *filename)
     }
     fclose(fp);
     return 0;
+}   
+Image *convolve(Image *image, Image *kernel)
+{
+    Image *result = malloc_image(image->width, image->height, image->channels, image->bit_depth);
+    int kw = (int) kernel->width;
+    int kh = (int) kernel->height;
+    for (uint32_t row = 0; row < image->height; row++) {
+        for (uint32_t col = 0; col < image->width; col++) {
+            uint32_t index = (row*image->width + col)*image->channels;
+            double accumulator[image->channels];
+            for (uint32_t channel = 0; channel < image->channels; channel++)
+                accumulator[channel] = 0;
+            for (int row_off = -kh/2; row_off <= kh/2; row_off++) {
+                for (int col_off = -kw/2; col_off <= kw/2; col_off++) {
+                    uint32_t col_rel = ((col + col_off)%image->width);
+                    uint32_t row_rel = ((row + row_off)%image->height);
+                    uint32_t offset_index = (row_rel*image->width + col_rel)*image->channels;
+                    uint32_t kernel_index = (row_off + kh/2)*kw + (col_off + kw/2);
+                    for (uint32_t channel = 0; channel < image->channels; channel++)
+                        accumulator[channel] += kernel->pixels[kernel_index]*image->pixels[offset_index + channel];
+                }
+            }
+            for (uint32_t channel = 0; channel < image->channels; channel++)
+                //result->pixels[index + channel] = (accumulator[channel] - min)/div;
+                result->pixels[index + channel] = accumulator[channel];
+        }
+    }
+    return result;
+}
+Image *normalize(Image *image)
+{
+    printf("%d %d %d %d\n", image->width, image->height, image->channels, image->bit_depth);
+    Image *result = malloc_image(image->width, image->height, image->channels, image->bit_depth);
+    double max[image->channels];
+    double min[image->channels];
+    for (uint32_t channel = 0; channel < image->channels; channel++) {
+        max[channel] = image->pixels[channel];
+        min[channel] = image->pixels[channel];
+    }
+    for (uint32_t row = 0; row < image->height; row++) {
+        for (uint32_t col = 0; col < image->width; col++) {
+            uint32_t index = (row*image->width + col)*image->channels;
+            for (uint32_t channel = 0; channel < image->channels; channel++) {
+                if (image->pixels[index + channel] < min[channel])
+                    min[channel] = image->pixels[index + channel];
+                if (image->pixels[index + channel] > max[channel])
+                    max[channel] = image->pixels[index + channel];
+            }
+        }
+    }
+    double div[image->channels];
+    for (uint32_t channel = 0; channel < image->channels; channel++)
+        div[channel] = (max[channel] - min[channel])/255;
+    for (uint32_t row = 0; row < image->height; row++) {
+        for (uint32_t col = 0; col < image->width; col++) {
+            uint32_t index = (row*image->width + col)*image->channels;
+            for (uint32_t channel = 0; channel < image->channels; channel++)
+                result->pixels[index + channel] = (image->pixels[index + channel] - min[channel])/div[channel];
+        }
+    }
+    return result;
 }
