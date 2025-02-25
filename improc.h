@@ -14,4 +14,5 @@ Image *open_image(char *filename);
 int save_image(Image *image, char *filename);
 Image *convolve(Image *image, Image *kernel);
 Image *normalize(Image *image);
+Image *grayscale(Image *image);
 #endif 

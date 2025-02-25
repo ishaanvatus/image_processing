@@ -1,4 +1,4 @@
- #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
@@ -129,6 +129,19 @@ Image *normalize(Image *image)
             for (uint32_t channel = 0; channel < image->channels; channel++)
                 result->pixels[index + channel] = (image->pixels[index + channel] - min[channel])/div[channel];
         }
+    }
+    return result;
+}
+Image *grayscale(Image *image)
+{
+    Image *result = malloc_image(image->width, image->height, image->channels, image->bit_depth);
+    for (uint32_t index = 0; index < image->width*image->height*image->channels; index += image->channels) {
+        double avg = 0;
+        for (uint32_t channel = 0; channel < image->channels; channel++)
+            avg += image->pixels[index + channel];
+        avg = avg/(1.0*image->channels);
+        for (uint32_t channel = 0; channel < image->channels; channel++)
+            result->pixels[index + channel] = avg;
     }
     return result;
 }
