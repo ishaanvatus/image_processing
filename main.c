@@ -1,19 +1,44 @@
 #include "improc.h"
 #include <stdio.h>
 #include <math.h>
-#include <inttypes.h>
-#define M_PI 3.141592653
-Image *gradient_wheel(Image *sy, Image *sx)
+#include "kernels.h"
+#define M_PI 3.141592653589793
+#define DEG_CONV 57.29577951308232
+Image *kernel_init(uint32_t kernel_width, uint32_t kernel_height, double *weights)
+{
+    Image *kernel = malloc_image(kernel_width, kernel_height, 1, 8);
+    for (uint32_t index = 0; index < kernel->width*kernel->height; index++)
+        kernel->pixels[index] = weights[index];
+    return kernel;
+}
+Image *angle(Image *sy, Image *sx)
 {
     Image *result = malloc_image(sx->width, sx->height, sx->channels, sx->bit_depth);
-    for (uint32_t index = 0; index < sx->width*sx->height*sx->channels; index += sx->channels) {
-        double rads = fabs(atan2(sy->pixels[index], sx->pixels[index]));
-        if (rads > M_PI)
-            rads = M_PI;
-        if (rads < 0)
-            rads = 0;
-        for (uint32_t channel = 0; channel < sx->channels; channel++)
-            result->pixels[index + channel] = 255*(rads/M_PI);
+    uint32_t width = sx->width;
+    uint32_t height = sx->height;
+    uint32_t channels = sx->channels;
+    for (uint32_t row = 0; row < height; row++) {
+        for (uint32_t col = 0; col < width; col++) {
+            uint32_t index = (row*width + col)*channels;
+            double angle = fabs(atan2(sy->pixels[index], sx->pixels[index]));
+            angle = angle*DEG_CONV;
+            double mag = pow(pow(sx->pixels[index], 2) + pow(sy->pixels[index], 2), 0.5);
+            if (angle >= 0 && angle <= 60) {
+                result->pixels[index + 0] = mag*angle;
+                result->pixels[index + 1] = 255*(angle/120);
+                result->pixels[index + 2] = 255*(angle/180);
+            }
+            if (angle > 60 && angle <= 120) {
+                result->pixels[index + 0] = 255*((angle - 60)/60);
+                result->pixels[index + 1] = mag*angle;
+                result->pixels[index + 2] = 255*((angle - 60)/180);
+            }
+            if (angle > 120 && angle <= 180) {
+                result->pixels[index + 0] = 255*((angle - 120)/60);
+                result->pixels[index + 1] = 255*((angle - 120)/120);
+                result->pixels[index + 2] = mag*angle;
+            }
+        }
     }
     return result;
 }
@@ -25,65 +50,39 @@ int main(int argc, char **argv)
     }
     Image *image = open_image(argv[1]), *sx, *sy, *grad;
     save_image(image, (char *) "original.ppm");
-    Image *kernel = malloc_image(3, 3, 1, 8);
-    Image *blur = malloc_image(5, 5, 1, 8);
-    double gaussian[25] = {
-        01, 04, 06, 04, 01,
-        06, 24, 36, 24, 06, 
-        04, 16, 24, 16, 04,
-        01, 04, 06, 04, 01
-    };
-    for (uint32_t index = 0; index < blur->width*blur->height; index++)
-        blur->pixels[index] = gaussian[index]/192;
-    image = convolve(image, blur);
-    save_image(image, (char *) "identity.ppm");
-    double soby[9] = {
-        +0.25, +0.00, -0.25,
-        +0.50, +0.00, -0.50,
-        +0.25, +0.00, -0.25
-    };
-    double sobx[9] = {
-        +0.25, +0.50, +0.25,
-        +0.00, +0.00, +0.00
-        -0.25, -0.50, -0.25,
-    };
-    for (uint32_t index = 0; index < kernel->width*kernel->height; index++)
-        kernel->pixels[index] = sobx[index];
-    sx = convolve(image, kernel);
+
+    Image *sobel_x = kernel_init(3, 3, SOBEL_X);
+    Image *sobel_y = kernel_init(3, 3, SOBEL_Y);
+    Image *gaussian_3 = kernel_init(3, 3, GAUSSIAN_3);
+
+    image = convolve(image, gaussian_3);
+    save_image(image, (char *) "gaussian_3.ppm");
+    /*
+    Image *gray = grayscale(image);
+    save_image(gray, (char *) "gray.ppm");
+    */
+
+    sx = convolve(image, sobel_x);
     save_image(normalize(sx), (char *) "sobx.ppm");
-    for (uint32_t index = 0; index < kernel->width*kernel->height; index++)
-        kernel->pixels[index] = soby[index];
-    sy = convolve(image, kernel);
+
+    sy = convolve(image, sobel_y);
     save_image(normalize(sy), (char *) "soby.ppm");
+    Image *dir = angle(sy, sx);
+    save_image(normalize(dir), (char *) "angle.ppm");
+
     grad = malloc_image(image->width, image->height, image->channels, image->bit_depth);
     for (uint32_t index = 0; index < image->width*image->height*image->channels; index++)
         grad->pixels[index] = pow(pow(sx->pixels[index], 2) + pow(sy->pixels[index], 2), 0.5);
     save_image(normalize(grad), (char *) "gradient.ppm");
-    Image *mag = gradient_wheel(sy, sx);
-    save_image(mag, (char *) "mag.ppm");
-    //same for grayscale image
-    Image *gray = grayscale(image);
-    save_image(gray, (char *) "identity_gray.ppm");
-    for (uint32_t index = 0; index < kernel->width*kernel->height; index++)
-        kernel->pixels[index] = sobx[index];
-    sx = convolve(gray, kernel);
-    save_image(normalize(sx), (char *) "sobx_gray.ppm");
-    for (uint32_t index = 0; index < kernel->width*kernel->height; index++)
-        kernel->pixels[index] = soby[index];
-    sy = convolve(gray, kernel);
-    save_image(normalize(sy), (char *) "soby_gray.ppm");
-    grad = malloc_image(image->width, image->height, image->channels, image->bit_depth);
-    for (uint32_t index = 0; index < image->width*image->height*image->channels; index++)
-        grad->pixels[index] = pow(pow(sx->pixels[index], 2) + pow(sy->pixels[index], 2), 0.5);
-    save_image(normalize(grad), (char *) "gradient_gray.ppm");
-    mag = gradient_wheel(sy, sx);
-    save_image(mag, (char *) "mag_gray.ppm");
+
     free_image(image);
     free_image(sx);
     free_image(sy);
-    free_image(mag);
     free_image(grad);
-    free_image(gray);
-    free_image(kernel);
+    free_image(sobel_x);
+    //free_image(gray);
+    free_image(sobel_y);
+    free_image(gaussian_3);
+
     return 0;
 }

@@ -34,13 +34,13 @@ Image *open_image(char *filename)
     char magic[3];
     uint32_t width, height, maxval, channels = 3;
     fscanf(fp, "%s\n%" SCNu32 " %" SCNu32 "\n%" SCNu32 "\n", magic, &width, &height, &maxval);
-    printf("%s\n%" SCNu32 " %" SCNu32 "\n%" SCNu32 "\n", magic, width, height, maxval);
+    //printf("%s\n%" SCNu32 " %" SCNu32 "\n%" SCNu32 "\n", magic, width, height, maxval);
     uint32_t power = 1, depth = 0;
     while (power < maxval)  {
         depth++;
         power = power*2;
     }
-    printf("%d\n", depth);
+    //printf("%d\n", depth);
     Image *image = malloc_image(width, height, channels, depth);
     for (uint32_t index = 0; index < image->width*image->height*image->channels; index++) {
         uint8_t val;
@@ -86,7 +86,7 @@ Image *convolve(Image *image, Image *kernel)
                 for (int col_off = -kw/2; col_off <= kw/2; col_off++) {
                     uint32_t col_rel = ((col + col_off)%image->width);
                     uint32_t row_rel = ((row + row_off)%image->height);
-                    uint32_t offset_index = (row_rel*image->width + col_rel)*image->channels;
+                    uint32_t offset_index = (row_rel*image->width + col_rel)*image->channels; 
                     uint32_t kernel_index = (row_off + kh/2)*kw + (col_off + kw/2);
                     for (uint32_t channel = 0; channel < image->channels; channel++)
                         accumulator[channel] += kernel->pixels[kernel_index]*image->pixels[offset_index + channel];
@@ -101,7 +101,7 @@ Image *convolve(Image *image, Image *kernel)
 }
 Image *normalize(Image *image)
 {
-    printf("%d %d %d %d\n", image->width, image->height, image->channels, image->bit_depth);
+    //printf("%d %d %d %d\n", image->width, image->height, image->channels, image->bit_depth);
     Image *result = malloc_image(image->width, image->height, image->channels, image->bit_depth);
     double max[image->channels];
     double min[image->channels];
